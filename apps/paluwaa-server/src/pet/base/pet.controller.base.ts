@@ -16,17 +16,35 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { PetService } from "../pet.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { PetCreateInput } from "./PetCreateInput";
 import { Pet } from "./Pet";
 import { PetFindManyArgs } from "./PetFindManyArgs";
 import { PetWhereUniqueInput } from "./PetWhereUniqueInput";
 import { PetUpdateInput } from "./PetUpdateInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class PetControllerBase {
-  constructor(protected readonly service: PetService) {}
+  constructor(
+    protected readonly service: PetService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: Pet })
+  @nestAccessControl.UseRoles({
+    resource: "Pet",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createPet(@common.Body() data: PetCreateInput): Promise<Pet> {
     return await this.service.createPet({
       data: data,
@@ -41,9 +59,18 @@ export class PetControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [Pet] })
   @ApiNestedQuery(PetFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Pet",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async pets(@common.Req() request: Request): Promise<Pet[]> {
     const args = plainToClass(PetFindManyArgs, request.query);
     return this.service.pets({
@@ -59,9 +86,18 @@ export class PetControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: Pet })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Pet",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async pet(@common.Param() params: PetWhereUniqueInput): Promise<Pet | null> {
     const result = await this.service.pet({
       where: params,
@@ -82,9 +118,18 @@ export class PetControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: Pet })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Pet",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updatePet(
     @common.Param() params: PetWhereUniqueInput,
     @common.Body() data: PetUpdateInput
@@ -115,6 +160,14 @@ export class PetControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: Pet })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Pet",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deletePet(
     @common.Param() params: PetWhereUniqueInput
   ): Promise<Pet | null> {
@@ -138,5 +191,141 @@ export class PetControllerBase {
       }
       throw error;
     }
+  }
+
+  @common.Post("/add-pet")
+  @swagger.ApiOkResponse({
+    type: Pet,
+  })
+  @swagger.ApiNotFoundResponse({
+    type: errors.NotFoundException,
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
+  async AddPet(
+    @common.Body()
+    body: string
+  ): Promise<Pet> {
+    return this.service.AddPet(body);
+  }
+
+  @common.Get("/:id/add-pet")
+  @swagger.ApiOkResponse({
+    type: String,
+  })
+  @swagger.ApiNotFoundResponse({
+    type: errors.NotFoundException,
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
+  async AddPet(
+    @common.Body()
+    body: string
+  ): Promise<string> {
+    return this.service.AddPet(body);
+  }
+
+  @common.Delete("/remove-pet/:id")
+  @swagger.ApiOkResponse({
+    type: Pet,
+  })
+  @swagger.ApiNotFoundResponse({
+    type: errors.NotFoundException,
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
+  async RemovePet(
+    @common.Body()
+    body: string
+  ): Promise<Pet> {
+    return this.service.RemovePet(body);
+  }
+
+  @common.Get("/:id/remove-pet")
+  @swagger.ApiOkResponse({
+    type: String,
+  })
+  @swagger.ApiNotFoundResponse({
+    type: errors.NotFoundException,
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
+  async RemovePet(
+    @common.Body()
+    body: string
+  ): Promise<string> {
+    return this.service.RemovePet(body);
+  }
+
+  @common.Get("/adopted-pets")
+  @swagger.ApiOkResponse({
+    type: Pet,
+  })
+  @swagger.ApiNotFoundResponse({
+    type: errors.NotFoundException,
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
+  async ShowAdoptedPets(
+    @common.Body()
+    body: string
+  ): Promise<Pet[]> {
+    return this.service.ShowAdoptedPets(body);
+  }
+
+  @common.Get("/:id/show-adopted-pets")
+  @swagger.ApiOkResponse({
+    type: String,
+  })
+  @swagger.ApiNotFoundResponse({
+    type: errors.NotFoundException,
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
+  async ShowAdoptedPets(
+    @common.Body()
+    body: string
+  ): Promise<string> {
+    return this.service.ShowAdoptedPets(body);
+  }
+
+  @common.Get("/available-pets")
+  @swagger.ApiOkResponse({
+    type: Pet,
+  })
+  @swagger.ApiNotFoundResponse({
+    type: errors.NotFoundException,
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
+  async ShowAvailablePets(
+    @common.Body()
+    body: string
+  ): Promise<Pet[]> {
+    return this.service.ShowAvailablePets(body);
+  }
+
+  @common.Get("/:id/show-available-pets")
+  @swagger.ApiOkResponse({
+    type: String,
+  })
+  @swagger.ApiNotFoundResponse({
+    type: errors.NotFoundException,
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
+  async ShowAvailablePets(
+    @common.Body()
+    body: string
+  ): Promise<string> {
+    return this.service.ShowAvailablePets(body);
   }
 }

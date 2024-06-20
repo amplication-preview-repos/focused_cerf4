@@ -13,6 +13,12 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
 import { Footer } from "./Footer";
 import { FooterCountArgs } from "./FooterCountArgs";
 import { FooterFindManyArgs } from "./FooterFindManyArgs";
@@ -21,10 +27,20 @@ import { CreateFooterArgs } from "./CreateFooterArgs";
 import { UpdateFooterArgs } from "./UpdateFooterArgs";
 import { DeleteFooterArgs } from "./DeleteFooterArgs";
 import { FooterService } from "../footer.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => Footer)
 export class FooterResolverBase {
-  constructor(protected readonly service: FooterService) {}
+  constructor(
+    protected readonly service: FooterService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "Footer",
+    action: "read",
+    possession: "any",
+  })
   async _footersMeta(
     @graphql.Args() args: FooterCountArgs
   ): Promise<MetaQueryPayload> {
@@ -34,12 +50,24 @@ export class FooterResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [Footer])
+  @nestAccessControl.UseRoles({
+    resource: "Footer",
+    action: "read",
+    possession: "any",
+  })
   async footers(@graphql.Args() args: FooterFindManyArgs): Promise<Footer[]> {
     return this.service.footers(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => Footer, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "Footer",
+    action: "read",
+    possession: "own",
+  })
   async footer(
     @graphql.Args() args: FooterFindUniqueArgs
   ): Promise<Footer | null> {
@@ -50,7 +78,13 @@ export class FooterResolverBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => Footer)
+  @nestAccessControl.UseRoles({
+    resource: "Footer",
+    action: "create",
+    possession: "any",
+  })
   async createFooter(@graphql.Args() args: CreateFooterArgs): Promise<Footer> {
     return await this.service.createFooter({
       ...args,
@@ -58,7 +92,13 @@ export class FooterResolverBase {
     });
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => Footer)
+  @nestAccessControl.UseRoles({
+    resource: "Footer",
+    action: "update",
+    possession: "any",
+  })
   async updateFooter(
     @graphql.Args() args: UpdateFooterArgs
   ): Promise<Footer | null> {
@@ -78,6 +118,11 @@ export class FooterResolverBase {
   }
 
   @graphql.Mutation(() => Footer)
+  @nestAccessControl.UseRoles({
+    resource: "Footer",
+    action: "delete",
+    possession: "any",
+  })
   async deleteFooter(
     @graphql.Args() args: DeleteFooterArgs
   ): Promise<Footer | null> {

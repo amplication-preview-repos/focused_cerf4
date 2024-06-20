@@ -16,17 +16,35 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { FooterService } from "../footer.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { FooterCreateInput } from "./FooterCreateInput";
 import { Footer } from "./Footer";
 import { FooterFindManyArgs } from "./FooterFindManyArgs";
 import { FooterWhereUniqueInput } from "./FooterWhereUniqueInput";
 import { FooterUpdateInput } from "./FooterUpdateInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class FooterControllerBase {
-  constructor(protected readonly service: FooterService) {}
+  constructor(
+    protected readonly service: FooterService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: Footer })
+  @nestAccessControl.UseRoles({
+    resource: "Footer",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createFooter(@common.Body() data: FooterCreateInput): Promise<Footer> {
     return await this.service.createFooter({
       data: data,
@@ -40,9 +58,18 @@ export class FooterControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [Footer] })
   @ApiNestedQuery(FooterFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Footer",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async footers(@common.Req() request: Request): Promise<Footer[]> {
     const args = plainToClass(FooterFindManyArgs, request.query);
     return this.service.footers({
@@ -57,9 +84,18 @@ export class FooterControllerBase {
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: Footer })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Footer",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async footer(
     @common.Param() params: FooterWhereUniqueInput
   ): Promise<Footer | null> {
@@ -81,9 +117,18 @@ export class FooterControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: Footer })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Footer",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updateFooter(
     @common.Param() params: FooterWhereUniqueInput,
     @common.Body() data: FooterUpdateInput
@@ -113,6 +158,14 @@ export class FooterControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: Footer })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Footer",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deleteFooter(
     @common.Param() params: FooterWhereUniqueInput
   ): Promise<Footer | null> {

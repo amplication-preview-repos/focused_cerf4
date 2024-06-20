@@ -11,6 +11,10 @@ https://docs.amplication.com/how-to/custom-code
   */
 import { PrismaService } from "../../prisma/prisma.service";
 import { Prisma, Pet as PrismaPet } from "@prisma/client";
+import { PetCreateInput } from "./PetCreateInput";
+import { Pet } from "./Pet";
+import { PetWhereUniqueInput } from "./PetWhereUniqueInput";
+import { PetFindManyArgs } from "./PetFindManyArgs";
 
 export class PetServiceBase {
   constructor(protected readonly prisma: PrismaService) {}
@@ -33,5 +37,29 @@ export class PetServiceBase {
   }
   async deletePet(args: Prisma.PetDeleteArgs): Promise<PrismaPet> {
     return this.prisma.pet.delete(args);
+  }
+  async AddPet(args: PetCreateInput): Promise<Pet> {
+    throw new Error("Not implemented");
+  }
+  async AddPet(args: string): Promise<string> {
+    throw new Error("Not implemented");
+  }
+  async RemovePet(args: PetWhereUniqueInput): Promise<Pet> {
+    throw new Error("Not implemented");
+  }
+  async RemovePet(args: string): Promise<string> {
+    throw new Error("Not implemented");
+  }
+  async ShowAdoptedPets(args: PetFindManyArgs): Promise<Pet[]> {
+    throw new Error("Not implemented");
+  }
+  async ShowAdoptedPets(args: string): Promise<string> {
+    throw new Error("Not implemented");
+  }
+  async ShowAvailablePets(args: PetFindManyArgs): Promise<Pet[]> {
+    throw new Error("Not implemented");
+  }
+  async ShowAvailablePets(args: string): Promise<string> {
+    throw new Error("Not implemented");
   }
 }

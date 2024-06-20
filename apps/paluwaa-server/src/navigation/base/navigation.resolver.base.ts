@@ -13,6 +13,12 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
 import { Navigation } from "./Navigation";
 import { NavigationCountArgs } from "./NavigationCountArgs";
 import { NavigationFindManyArgs } from "./NavigationFindManyArgs";
@@ -21,10 +27,20 @@ import { CreateNavigationArgs } from "./CreateNavigationArgs";
 import { UpdateNavigationArgs } from "./UpdateNavigationArgs";
 import { DeleteNavigationArgs } from "./DeleteNavigationArgs";
 import { NavigationService } from "../navigation.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => Navigation)
 export class NavigationResolverBase {
-  constructor(protected readonly service: NavigationService) {}
+  constructor(
+    protected readonly service: NavigationService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "Navigation",
+    action: "read",
+    possession: "any",
+  })
   async _navigationsMeta(
     @graphql.Args() args: NavigationCountArgs
   ): Promise<MetaQueryPayload> {
@@ -34,14 +50,26 @@ export class NavigationResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [Navigation])
+  @nestAccessControl.UseRoles({
+    resource: "Navigation",
+    action: "read",
+    possession: "any",
+  })
   async navigations(
     @graphql.Args() args: NavigationFindManyArgs
   ): Promise<Navigation[]> {
     return this.service.navigations(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => Navigation, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "Navigation",
+    action: "read",
+    possession: "own",
+  })
   async navigation(
     @graphql.Args() args: NavigationFindUniqueArgs
   ): Promise<Navigation | null> {
@@ -52,7 +80,13 @@ export class NavigationResolverBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => Navigation)
+  @nestAccessControl.UseRoles({
+    resource: "Navigation",
+    action: "create",
+    possession: "any",
+  })
   async createNavigation(
     @graphql.Args() args: CreateNavigationArgs
   ): Promise<Navigation> {
@@ -62,7 +96,13 @@ export class NavigationResolverBase {
     });
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => Navigation)
+  @nestAccessControl.UseRoles({
+    resource: "Navigation",
+    action: "update",
+    possession: "any",
+  })
   async updateNavigation(
     @graphql.Args() args: UpdateNavigationArgs
   ): Promise<Navigation | null> {
@@ -82,6 +122,11 @@ export class NavigationResolverBase {
   }
 
   @graphql.Mutation(() => Navigation)
+  @nestAccessControl.UseRoles({
+    resource: "Navigation",
+    action: "delete",
+    possession: "any",
+  })
   async deleteNavigation(
     @graphql.Args() args: DeleteNavigationArgs
   ): Promise<Navigation | null> {
